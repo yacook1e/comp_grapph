@@ -18,7 +18,6 @@ PANEL_BG = "#2a2a3a"
 
 class Matrix3x3:
     def __init__(self, data=None):
-        # единичная по умолчанию
         if data is None:
             self.data = [[1, 0, 0],
                          [0, 1, 0],
@@ -91,7 +90,7 @@ class CompoundShape:
         inner_r = 35
         self.star_verts = []
         for i in range(10):
-            angle = math.radians(i * 36 + 90)  #+90 градусов для вертикальной ориентации
+            angle = math.radians(i * 36 + 90)
             r = outer_r if i % 2 == 0 else inner_r
             x = r * math.cos(angle)
             y = r * math.sin(angle)
@@ -162,97 +161,180 @@ class LabApp:
         self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg=BG_COLOR, highlightthickness=0)
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        self.btn_frame = tk.Frame(root, bg=PANEL_BG, width=140)
+        self.btn_frame = tk.Frame(root, bg=PANEL_BG, width=220)
         self.btn_frame.pack(side=tk.LEFT, fill=tk.Y, padx=0, pady=0)
         self.btn_frame.pack_propagate(False)
 
         self.shape = CompoundShape()
-
         self.snowflake_template = create_snowflake_template(15)
         self.snowflakes = []
         for _ in range(40):
             self.snowflakes.append([
-                random.uniform(-CENTER_X + 50, CENTER_X - 50),   # x
-                random.uniform(-CENTER_Y + 50, CENTER_Y - 50),   # y
-                random.uniform(-0.5, 0.5),                       # vx
-                random.uniform(-3.0, -1.0),                      # vy
-                random.uniform(0, 360),              # угол
-                random.uniform(-2, 2),              # угловая скорость
-                random.uniform(0.7, 1.3)      # масштаб
+                random.uniform(-CENTER_X + 50, CENTER_X - 50),
+                random.uniform(-CENTER_Y + 50, CENTER_Y - 50),
+                random.uniform(-0.5, 0.5),
+                random.uniform(-3.0, -1.0),
+                random.uniform(0, 360),
+                random.uniform(-2, 2),
+                random.uniform(0.7, 1.3)
             ])
 
         self.mode = "shapes"
         self.animation_id = None
-        self.pending_rotate_point = False
-        self.rotate_angle = 15
 
         self.create_buttons()
         self.draw_axes()
         self.redraw_shape()
         self.animate()
+
     def draw_axes(self):
         self.canvas.delete("axes")
-        self.canvas.create_line(CENTER_X, 0, CENTER_X, HEIGHT, fill="#444444", tags="axes")
-        self.canvas.create_line(0, CENTER_Y, WIDTH, CENTER_Y, fill="#444444", tags="axes")
+        # Оси
+        self.canvas.create_line(CENTER_X, 0, CENTER_X, HEIGHT, fill="#555566", tags="axes", width=2)
+        self.canvas.create_line(0, CENTER_Y, WIDTH, CENTER_Y, fill="#555566", tags="axes", width=2)
+
+        # Стрелки
+        self.canvas.create_line(CENTER_X, 5, CENTER_X-5, 15, fill="#555566", tags="axes")
+        self.canvas.create_line(CENTER_X, 5, CENTER_X+5, 15, fill="#555566", tags="axes")
+        self.canvas.create_line(WIDTH-5, CENTER_Y, WIDTH-15, CENTER_Y-5, fill="#555566", tags="axes")
+        self.canvas.create_line(WIDTH-5, CENTER_Y, WIDTH-15, CENTER_Y+5, fill="#555566", tags="axes")
+
+        # Подписи X и Y
+        self.canvas.create_text(WIDTH-20, CENTER_Y-10, text="X", fill="#888899", font=("Arial", 12, "bold"), tags="axes")
+        self.canvas.create_text(CENTER_X+10, 15, text="Y", fill="#888899", font=("Arial", 12, "bold"), tags="axes")
+
+        # Метки и цифры на осях (шаг 50)
+        step = 50
+        for x in range(step, WIDTH, step):
+            if x == CENTER_X:
+                continue
+            world_x = x - CENTER_X
+            self.canvas.create_line(x, CENTER_Y-3, x, CENTER_Y+3, fill="#555566", tags="axes")
+            self.canvas.create_text(x, CENTER_Y+12, text=str(world_x), fill="#777788", font=("Arial", 8), tags="axes")
+        for y in range(step, HEIGHT, step):
+            if y == CENTER_Y:
+                continue
+            world_y = CENTER_Y - y
+            self.canvas.create_line(CENTER_X-3, y, CENTER_X+3, y, fill="#555566", tags="axes")
+            self.canvas.create_text(CENTER_X-10, y, text=str(world_y), fill="#777788", font=("Arial", 8), tags="axes")
+
+        self.canvas.create_text(CENTER_X-10, CENTER_Y+12, text="0", fill="#888899", font=("Arial", 9), tags="axes")
 
     def create_buttons(self):
         btn_pad = 3
-        buttons_data = [
-            ("Move OX+", lambda: self.transform_shape(Matrix3x3.translation(10, 0))),
-            ("Move OX-", lambda: self.transform_shape(Matrix3x3.translation(-10, 0))),
-            ("Move OY+", lambda: self.transform_shape(Matrix3x3.translation(0, 10))),
-            ("Move OY-", lambda: self.transform_shape(Matrix3x3.translation(0, -10))),
-            ("Refl OX", lambda: self.transform_shape(Matrix3x3.reflection_x())),
-            ("Refl OY", lambda: self.transform_shape(Matrix3x3.reflection_y())),
-            ("Refl Y=X", lambda: self.transform_shape(Matrix3x3.reflection_yx())),
-            ("X+", lambda: self.transform_shape(Matrix3x3.scaling(1.1, 1.0))),
-            ("X-", lambda: self.transform_shape(Matrix3x3.scaling(0.9, 1.0))),
-            ("Y+", lambda: self.transform_shape(Matrix3x3.scaling(1.0, 1.1))),
-            ("Y-", lambda: self.transform_shape(Matrix3x3.scaling(1.0, 0.9))),
-            ("Rot around O", lambda: self.transform_shape(Matrix3x3.rotation(15))),
-        ]
-        for text, cmd in buttons_data:
-            btn = tk.Button(self.btn_frame, text=text, bg=BUTTON_BG, fg=TEXT_COLOR,
-                            activebackground=BUTTON_ACTIVE, command=cmd)
-            btn.pack(fill=tk.X, pady=btn_pad, padx=5)
 
-        # поворот вокруг точки
-        self.rotate_point_btn = tk.Button(self.btn_frame, text="Rot around point", bg=BUTTON_BG, fg=TEXT_COLOR,
-                                          activebackground=BUTTON_ACTIVE, command=self.activate_rotate_point)
-        self.rotate_point_btn.pack(fill=tk.X, pady=btn_pad, padx=5)
+        # --- Сдвиг ---
+        tk.Label(self.btn_frame, text="Сдвиг (пиксели)", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
+        frame_shift = tk.Frame(self.btn_frame, bg=PANEL_BG)
+        frame_shift.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(frame_shift, text="dx:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT)
+        self.shift_x_entry = tk.Entry(frame_shift, width=6, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.shift_x_entry.pack(side=tk.LEFT, padx=2)
+        self.shift_x_entry.insert(0, "10")
+        tk.Label(frame_shift, text="dy:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(5,0))
+        self.shift_y_entry = tk.Entry(frame_shift, width=6, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.shift_y_entry.pack(side=tk.LEFT, padx=2)
+        self.shift_y_entry.insert(0, "10")
+        btn_shift = tk.Button(self.btn_frame, text="Применить сдвиг", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_shift)
+        btn_shift.pack(fill=tk.X, padx=5, pady=2)
 
-        reset_btn = tk.Button(self.btn_frame, text="Reset", bg=BUTTON_BG, fg=TEXT_COLOR,
-                              activebackground=BUTTON_ACTIVE, command=self.reset_shape)
-        reset_btn.pack(fill=tk.X, pady=btn_pad, padx=5)
+        # --- Масштабирование ---
+        tk.Label(self.btn_frame, text="Масштабирование", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
+        frame_scale = tk.Frame(self.btn_frame, bg=PANEL_BG)
+        frame_scale.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(frame_scale, text="sx:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT)
+        self.scale_x_entry = tk.Entry(frame_scale, width=6, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.scale_x_entry.pack(side=tk.LEFT, padx=2)
+        self.scale_x_entry.insert(0, "1.1")
+        tk.Label(frame_scale, text="sy:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(5,0))
+        self.scale_y_entry = tk.Entry(frame_scale, width=6, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.scale_y_entry.pack(side=tk.LEFT, padx=2)
+        self.scale_y_entry.insert(0, "1.1")
+        btn_scale = tk.Button(self.btn_frame, text="Применить масштаб", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_scale)
+        btn_scale.pack(fill=tk.X, padx=5, pady=2)
 
-        self.mode_btn = tk.Button(self.btn_frame, text="Snowflakes", bg=BUTTON_BG, fg=TEXT_COLOR,
-                                  activebackground=BUTTON_ACTIVE, command=self.toggle_mode)
-        self.mode_btn.pack(fill=tk.X, pady=btn_pad, padx=5)
+        # --- Поворот вокруг начала координат ---
+        tk.Label(self.btn_frame, text="Поворот (градусы)", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
+        frame_rot = tk.Frame(self.btn_frame, bg=PANEL_BG)
+        frame_rot.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(frame_rot, text="угол:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT)
+        self.rot_angle_entry = tk.Entry(frame_rot, width=6, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.rot_angle_entry.pack(side=tk.LEFT, padx=2)
+        self.rot_angle_entry.insert(0, "15")
+        btn_rot = tk.Button(self.btn_frame, text="Повернуть вокруг O", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_rotation)
+        btn_rot.pack(fill=tk.X, padx=5, pady=2)
 
-        self.canvas.bind("<Button-1>", self.on_canvas_click)
+        # --- Поворот вокруг произвольной точки ---
+        tk.Label(self.btn_frame, text="Поворот вокруг точки", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
+        frame_point = tk.Frame(self.btn_frame, bg=PANEL_BG)
+        frame_point.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(frame_point, text="cx:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT)
+        self.rot_cx_entry = tk.Entry(frame_point, width=5, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.rot_cx_entry.pack(side=tk.LEFT, padx=2)
+        self.rot_cx_entry.insert(0, "0")
+        tk.Label(frame_point, text="cy:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(5,0))
+        self.rot_cy_entry = tk.Entry(frame_point, width=5, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.rot_cy_entry.pack(side=tk.LEFT, padx=2)
+        self.rot_cy_entry.insert(0, "0")
+        tk.Label(frame_point, text="угол:", bg=PANEL_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(5,0))
+        self.rot_point_angle_entry = tk.Entry(frame_point, width=5, bg=BUTTON_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR)
+        self.rot_point_angle_entry.pack(side=tk.LEFT, padx=2)
+        self.rot_point_angle_entry.insert(0, "30")
+        btn_rot_point = tk.Button(self.btn_frame, text="Применить поворот", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_rotation_around_point)
+        btn_rot_point.pack(fill=tk.X, padx=5, pady=2)
 
-    def transform_shape(self, matrix):
+        # --- Кнопки управления ---
+        tk.Frame(self.btn_frame, height=2, bg="#444455").pack(fill=tk.X, pady=8)
+        reset_btn = tk.Button(self.btn_frame, text="Сбросить фигуру", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.reset_shape)
+        reset_btn.pack(fill=tk.X, padx=5, pady=2)
+
+        self.mode_btn = tk.Button(self.btn_frame, text="Снежинки", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.toggle_mode)
+        self.mode_btn.pack(fill=tk.X, padx=5, pady=2)
+
+    def apply_shift(self):
+        try:
+            dx = float(self.shift_x_entry.get())
+            dy = float(self.shift_y_entry.get())
+        except ValueError:
+            return
         if self.mode == "shapes":
+            self.shape.transform(Matrix3x3.translation(dx, dy))
+            self.redraw_shape()
+
+    def apply_scale(self):
+        try:
+            sx = float(self.scale_x_entry.get())
+            sy = float(self.scale_y_entry.get())
+        except ValueError:
+            return
+        if self.mode == "shapes":
+            self.shape.transform(Matrix3x3.scaling(sx, sy))
+            self.redraw_shape()
+
+    def apply_rotation(self):
+        try:
+            angle = float(self.rot_angle_entry.get())
+        except ValueError:
+            return
+        if self.mode == "shapes":
+            self.shape.transform(Matrix3x3.rotation(angle))
+            self.redraw_shape()
+
+    def apply_rotation_around_point(self):
+        try:
+            cx = float(self.rot_cx_entry.get())
+            cy = float(self.rot_cy_entry.get())
+            angle = float(self.rot_point_angle_entry.get())
+        except ValueError:
+            return
+        if self.mode == "shapes":
+            matrix = Matrix3x3.rotation_around(angle, cx, cy)
             self.shape.transform(matrix)
             self.redraw_shape()
 
     def reset_shape(self):
-        self.shape.reset()
-        self.redraw_shape()
-
-    def activate_rotate_point(self):
         if self.mode == "shapes":
-            self.pending_rotate_point = True
-            self.canvas.config(cursor="crosshair")
-
-    def on_canvas_click(self, event):
-        if self.pending_rotate_point:
-            world_x = event.x - CENTER_X
-            world_y = CENTER_Y - event.y
-            matrix = Matrix3x3.rotation_around(self.rotate_angle, world_x, world_y)
-            self.shape.transform(matrix)
-            self.pending_rotate_point = False
-            self.canvas.config(cursor="")
+            self.shape.reset()
             self.redraw_shape()
 
     def redraw_shape(self):
@@ -262,11 +344,11 @@ class LabApp:
     def toggle_mode(self):
         if self.mode == "shapes":
             self.mode = "snow"
-            self.mode_btn.config(text="Shapes")
+            self.mode_btn.config(text="Фигуры")
             self.canvas.delete("shape")
         else:
             self.mode = "shapes"
-            self.mode_btn.config(text="Snowflakes")
+            self.mode_btn.config(text="Снежинки")
             self.canvas.delete("snowflake")
             self.redraw_shape()
 
@@ -282,7 +364,6 @@ class LabApp:
             sf[0] += sf[2] * dt
             sf[1] += sf[3] * dt
             sf[4] += sf[5] * dt
-
             if sf[1] < -CENTER_Y - 50:
                 sf[0] = random.uniform(-CENTER_X + 50, CENTER_X - 50)
                 sf[1] = CENTER_Y - 50
@@ -295,12 +376,10 @@ class LabApp:
     def draw_snowflakes(self):
         self.canvas.delete("snowflake")
         for sf in self.snowflakes:
-            # матрица масштаб, поворот, перенос
             m_scale = Matrix3x3.scaling(sf[6], sf[6])
             m_rot = Matrix3x3.rotation(sf[4])
             m_trans = Matrix3x3.translation(sf[0], sf[1])
             matrix = m_trans * m_rot * m_scale
-
             points = []
             for v in self.snowflake_template:
                 p = matrix.transform_point([v[0], v[1], 1])
