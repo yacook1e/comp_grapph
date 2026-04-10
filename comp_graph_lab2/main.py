@@ -189,21 +189,21 @@ class LabApp:
 
     def draw_axes(self):
         self.canvas.delete("axes")
-        # Оси
+        
         self.canvas.create_line(CENTER_X, 0, CENTER_X, HEIGHT, fill="#555566", tags="axes", width=2)
         self.canvas.create_line(0, CENTER_Y, WIDTH, CENTER_Y, fill="#555566", tags="axes", width=2)
 
-        # Стрелки
+        
         self.canvas.create_line(CENTER_X, 5, CENTER_X-5, 15, fill="#555566", tags="axes")
         self.canvas.create_line(CENTER_X, 5, CENTER_X+5, 15, fill="#555566", tags="axes")
         self.canvas.create_line(WIDTH-5, CENTER_Y, WIDTH-15, CENTER_Y-5, fill="#555566", tags="axes")
         self.canvas.create_line(WIDTH-5, CENTER_Y, WIDTH-15, CENTER_Y+5, fill="#555566", tags="axes")
 
-        # Подписи X и Y
+        
         self.canvas.create_text(WIDTH-20, CENTER_Y-10, text="X", fill="#888899", font=("Arial", 12, "bold"), tags="axes")
         self.canvas.create_text(CENTER_X+10, 15, text="Y", fill="#888899", font=("Arial", 12, "bold"), tags="axes")
 
-        # Метки и цифры на осях (шаг 50)
+        
         step = 50
         for x in range(step, WIDTH, step):
             if x == CENTER_X:
@@ -223,7 +223,7 @@ class LabApp:
     def create_buttons(self):
         btn_pad = 3
 
-        # --- Сдвиг ---
+        
         tk.Label(self.btn_frame, text="Сдвиг (пиксели)", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
         frame_shift = tk.Frame(self.btn_frame, bg=PANEL_BG)
         frame_shift.pack(fill=tk.X, padx=5, pady=2)
@@ -238,7 +238,7 @@ class LabApp:
         btn_shift = tk.Button(self.btn_frame, text="Применить сдвиг", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_shift)
         btn_shift.pack(fill=tk.X, padx=5, pady=2)
 
-        # --- Масштабирование ---
+        
         tk.Label(self.btn_frame, text="Масштабирование", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
         frame_scale = tk.Frame(self.btn_frame, bg=PANEL_BG)
         frame_scale.pack(fill=tk.X, padx=5, pady=2)
@@ -253,7 +253,7 @@ class LabApp:
         btn_scale = tk.Button(self.btn_frame, text="Применить масштаб", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_scale)
         btn_scale.pack(fill=tk.X, padx=5, pady=2)
 
-        # --- Поворот вокруг начала координат ---
+        
         tk.Label(self.btn_frame, text="Поворот (градусы)", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
         frame_rot = tk.Frame(self.btn_frame, bg=PANEL_BG)
         frame_rot.pack(fill=tk.X, padx=5, pady=2)
@@ -264,7 +264,7 @@ class LabApp:
         btn_rot = tk.Button(self.btn_frame, text="Повернуть вокруг O", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_rotation)
         btn_rot.pack(fill=tk.X, padx=5, pady=2)
 
-        # --- Поворот вокруг произвольной точки ---
+        
         tk.Label(self.btn_frame, text="Поворот вокруг точки", bg=PANEL_BG, fg=TEXT_COLOR, font=("Arial", 9, "bold")).pack(fill=tk.X, pady=(8,0))
         frame_point = tk.Frame(self.btn_frame, bg=PANEL_BG)
         frame_point.pack(fill=tk.X, padx=5, pady=2)
@@ -283,7 +283,7 @@ class LabApp:
         btn_rot_point = tk.Button(self.btn_frame, text="Применить поворот", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.apply_rotation_around_point)
         btn_rot_point.pack(fill=tk.X, padx=5, pady=2)
 
-        # --- Кнопки управления ---
+        
         tk.Frame(self.btn_frame, height=2, bg="#444455").pack(fill=tk.X, pady=8)
         reset_btn = tk.Button(self.btn_frame, text="Сбросить фигуру", bg=BUTTON_BG, fg=TEXT_COLOR, command=self.reset_shape)
         reset_btn.pack(fill=tk.X, padx=5, pady=2)
