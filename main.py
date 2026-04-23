@@ -41,24 +41,35 @@ def plot_pixel(canvas, x, y, color):
         return
     canvas.create_oval(px - r, py - r, px + r, py + r, fill=color, outline=color)
 
+
 def bresenham_line(x1, y1, x2, y2, plot_func):
     dx = abs(x2 - x1)
     dy = abs(y2 - y1)
     sx = 1 if x1 < x2 else -1
     sy = 1 if y1 < y2 else -1
-    err = dx - dy
     x, y = x1, y1
-    while True:
-        plot_func(x, y)
-        if x == x2 and y == y2:
-            break
-        e2 = 2 * err
-        if e2 > -dy:
-            err -= dy
+    if dx >= dy:
+        d = 2 * dy - dx
+        while True:
+            plot_func(x, y)
+            if x == x2 and y == y2:
+                break
+            if d >= 0:
+                y += sy
+                d -= 2 * dx
             x += sx
-        if e2 < dx:
-            err += dx
+            d += 2 * dy
+    else:
+        d = 2 * dx - dy
+        while True:
+            plot_func(x, y)
+            if x == x2 and y == y2:
+                break
+            if d >= 0:
+                x += sx
+                d -= 2 * dy
             y += sy
+            d += 2 * dx
 
 def bresenham_circle(xc, yc, r, plot_func):
     x = 0
@@ -73,12 +84,12 @@ def bresenham_circle(xc, yc, r, plot_func):
         plot_func(xc - y, yc + x)
         plot_func(xc + y, yc - x)
         plot_func(xc - y, yc - x)
-        x += 1
         if d < 0:
-            d += 2 * x + 1
+            d += 2 * x + 3
         else:
             y -= 1
-            d += 2 * (x - y) + 1
+            d += 2 * (x - y) + 5
+        x += 1
 
 def clear_canvas(canvas):
     canvas.delete("all")
