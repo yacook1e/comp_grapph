@@ -1,23 +1,7 @@
-"""
-Лабораторная работа №4. Алгоритмы отсечения отрезка.
-
-Реализованы:
-  1) Алгоритм Цируса — Бека      (отсечение отрезка выпуклым многоугольником)
-  2) Алгоритм Сазерленда — Коэна (отсечение отрезка прямоугольником)
-  3) Алгоритм средней точки      (отсечение отрезка прямоугольником)
-
-Входные данные читаются из текстовых файлов. Отрисовка — на tkinter.Canvas.
-Начало координат — в центре окна программы, ось Y направлена вверх.
-"""
-
 import os
 import tkinter as tk
 from tkinter import messagebox
 
-
-# =====================================================================
-#  Векторная алгебра
-# =====================================================================
 def dot(a, b):
     return a[0] * b[0] + a[1] * b[1]
 
@@ -33,13 +17,7 @@ def add(a, b):
 def mult(a, t):
     return (a[0] * t, a[1] * t)
 
-
-# =====================================================================
-#  Чтение входных данных и генерация демо-файлов
-# =====================================================================
 def read_points_from_txt(path):
-    """Читает файл, в каждой строке — пара чисел 'x y' (или 'x,y').
-    Пустые строки и строки, начинающиеся с '#', игнорируются."""
     points = []
     with open(path, 'r', encoding='utf-8') as f:
         for raw in f:
@@ -60,8 +38,6 @@ def read_points_from_txt(path):
 
 
 def read_cyrus_beck_input(path):
-    """Все точки, кроме двух последних — вершины многоугольника;
-    последние две — концы отрезка."""
     pts = read_points_from_txt(path)
     if len(pts) < 4:
         raise ValueError("Нужно минимум 4 точки (3 вершины + 2 конца отрезка).")
@@ -71,7 +47,6 @@ def read_cyrus_beck_input(path):
 
 
 def read_rect_input(path):
-    """Первые 4 точки — вершины прямоугольника; следующие две — отрезок."""
     pts = read_points_from_txt(path)
     if len(pts) < 6:
         raise ValueError("Нужно 6 точек (4 вершины прямоугольника + 2 конца отрезка).")
@@ -103,10 +78,8 @@ def ensure_input_files():
             f.write("-5 -3\n")
             f.write("5 3\n")
 
+#цирус-бэк
 
-# =====================================================================
-#  Алгоритм Цируса — Бека
-# =====================================================================
 def polygon_area(polygon):
     area = 0.0
     n = len(polygon)
@@ -118,7 +91,6 @@ def polygon_area(polygon):
 
 
 def get_edges(polygon):
-    """Список рёбер вида (точка_на_ребре, внутренняя_нормаль)."""
     edges = []
     n = len(polygon)
     ccw = polygon_area(polygon) > 0
@@ -126,7 +98,7 @@ def get_edges(polygon):
         a = polygon[i]
         b = polygon[(i + 1) % n]
         v = (b[0] - a[0], b[1] - a[1])
-        norm = (-v[1], v[0]) if ccw else (v[1], -v[0])
+        norm = (-v[1], v[0]) if ccw else (v[1], -v[0]) #получаем нормаль в зависимости от обхода
         edges.append((a, norm))
     return edges
 
@@ -139,18 +111,18 @@ def cyrus_beck(line, edges, eps=1e-9):
     cand_in, cand_out = [], []
 
     for idx, (pe, nrm) in enumerate(edges):
-        num = dot(nrm, sub(p0, pe))
-        den = dot(nrm, d)
+        num = dot(nrm, sub(p0, pe)) #внутреняя сторона>=0/снаружи<0
+        den = dot(nrm, d) #вход>0/выход<0/паралельно
         if abs(den) < eps:
             if num < -eps:                 # отрезок снаружи этой стороны
                 return None, None, False, [], []
         else:
             t = -num / den
             pt = add(p0, mult(d, t))
-            if den > 0:                    # входим в полуплоскость
+            if den > 0:
                 cand_in.append((t, pt, idx))
-                t_in = max(t_in, t)
-            else:                          # выходим из полуплоскости
+                t_in = max(t_in, t) 
+            else:
                 cand_out.append((t, pt, idx))
                 t_out = min(t_out, t)
 
@@ -161,9 +133,8 @@ def cyrus_beck(line, edges, eps=1e-9):
     return None, None, False, cand_in, cand_out
 
 
-# =====================================================================
-#  Алгоритм Сазерленда — Коэна
-# =====================================================================
+#сазэрленд-коэн
+
 INSIDE, LEFT, RIGHT, BOTTOM, TOP = 0, 1, 2, 4, 8
 
 
@@ -221,9 +192,8 @@ def sutherland_cohen(x0, y0, x1, y1, xmin, xmax, ymin, ymax):
             x1, y1 = x, y
 
 
-# =====================================================================
-#  Алгоритм средней точки
-# =====================================================================
+#мидпоинт
+
 def midpoint_clip(x1, y1, x2, y2, xmin, ymin, xmax, ymax,
                   midpoints, eps=1e-6):
     c1 = compute_code(x1, y1, xmin, xmax, ymin, ymax)
@@ -256,9 +226,6 @@ def midpoint_clip(x1, y1, x2, y2, xmin, ymin, xmax, ymax,
     return None, None, None, None, False
 
 
-# =====================================================================
-#  Приложение на tkinter
-# =====================================================================
 class ClipApp:
     SCALE = 50          # пикселей на одну единицу
     W, H = 900, 650     # размеры холста
@@ -295,11 +262,9 @@ class ClipApp:
 
         self.draw_axes()
 
-    # ------- преобразования координат -------
     def to_screen(self, x, y):
         return self.W / 2 + x * self.SCALE, self.H / 2 - y * self.SCALE
 
-    # ------- статическая сетка и оси -------
     def draw_axes(self):
         xu = int(self.W / (2 * self.SCALE))
         yu = int(self.H / (2 * self.SCALE))
@@ -325,7 +290,6 @@ class ClipApp:
         self.canvas.delete('all')
         self.draw_axes()
 
-    # ------- примитивы -------
     def draw_polygon(self, polygon, fill='#cfe8ff', outline='#1f4e79'):
         pts = []
         for x, y in polygon:
@@ -354,7 +318,6 @@ class ClipApp:
             self.canvas.create_text(x0 + 18, y - 1, text=label,
                                     anchor='w', font=('Arial', 9))
 
-    # ------- запуск алгоритмов -------
     def run_cyrus_beck(self):
         try:
             polygon, line = read_cyrus_beck_input('cyrus_beck_input.txt')
@@ -496,7 +459,6 @@ def main():
     root = tk.Tk()
     ClipApp(root)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
