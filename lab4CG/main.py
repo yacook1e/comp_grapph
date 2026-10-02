@@ -80,25 +80,14 @@ def ensure_input_files():
 
 #цирус-бэк
 
-def polygon_area(polygon):
-    area = 0.0
-    n = len(polygon)
-    for i in range(n):
-        x1, y1 = polygon[i]
-        x2, y2 = polygon[(i + 1) % n]
-        area += x1 * y2 - x2 * y1
-    return area / 2.0
-
-
 def get_edges(polygon):
     edges = []
     n = len(polygon)
-    ccw = polygon_area(polygon) > 0
     for i in range(n):
         a = polygon[i]
         b = polygon[(i + 1) % n]
-        v = (b[0] - a[0], b[1] - a[1])
-        norm = (-v[1], v[0]) if ccw else (v[1], -v[0]) #получаем нормаль в зависимости от обхода
+        v = (b[0] - a[0], b[1] - a[1]) #вектор ребра
+        norm = (-v[1], v[0])
         edges.append((a, norm))
     return edges
 
@@ -109,28 +98,33 @@ def cyrus_beck(line, edges, eps=1e-9):
 
     t_in, t_out = 0.0, 1.0
     cand_in, cand_out = [], []
+    parallel_outside = False
 
     for idx, (pe, nrm) in enumerate(edges):
-        num = dot(nrm, sub(p0, pe)) #внутреняя сторона>=0/снаружи<0
-        den = dot(nrm, d) #вход>0/выход<0/паралельно
+        num = dot(nrm, sub(p0, pe))
+        den = dot(nrm, d)
         if abs(den) < eps:
-            if num < -eps:                 # отрезок снаружи этой стороны
-                return None, None, False, [], []
+            if num < -eps:
+                parallel_outside = True
         else:
             t = -num / den
             pt = add(p0, mult(d, t))
             if den > 0:
                 cand_in.append((t, pt, idx))
-                t_in = max(t_in, t) 
+                t_in = max(t_in, t)
             else:
                 cand_out.append((t, pt, idx))
                 t_out = min(t_out, t)
-
-    if t_in <= t_out + eps:
-        return (add(p0, mult(d, t_in)),
-                add(p0, mult(d, t_out)),
-                True, cand_in, cand_out)
-    return None, None, False, cand_in, cand_out
+    if parallel_outside or t_in > t_out + eps:
+        visible = False
+    else:
+        visible = True
+    if visible:
+        p_in = add(p0, mult(d, t_in))
+        p_out = add(p0, mult(d, t_out))
+        return p_in, p_out, True, cand_in, cand_out
+    else:
+        return None, None, False, cand_in, cand_out
 
 
 #сазэрленд-коэн
