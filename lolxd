@@ -1,0 +1,46 @@
+struct point {
+	double x, y;
+	point operator+ (point B) {
+		point res;
+		res.x = x + B.x;
+		res.y = y + B.y;
+		return res;
+	}
+	point operator- (point B) {
+		point res;
+		res.x = x - B.x;
+		res.y = y - B.y;
+		return res;
+	}
+	point operator*(double k) {
+		point res;
+		res.x = k * x;
+		res.y = k * y;
+		return res;
+	}
+};
+ 
+double dis2(point a)
+{
+	return a.x * a.x + a.y + a.y;
+}
+ 
+double dot(point a, point b)
+{
+	return a.x * b.x + a.y * b.y;
+}
+ 
+double cross(point a, point b)
+{
+	return a.x * b.y - a.y * b.x;
+}
+ 
+double len(point a, point b)
+{
+	return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+}
+ 
+double logbase(double a, double base)
+{
+	return log(a) / log(base);
+}
